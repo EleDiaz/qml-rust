@@ -60,8 +60,9 @@ macro_rules! __gen_signals{
 /// pub struct Example;
 ///
 /// impl Example {
-///     pub fn simple_receiver(&mut self) {
+///     pub fn simple_receiver(&mut self) -> Option<&QVariant> {
 ///         // This is a function that also will be a slot
+///         None
 ///     }
 /// }
 ///
@@ -75,11 +76,11 @@ macro_rules! __gen_signals{
 ///         name: String; read: get_name, write: set_name, notify: name_changed;
 /// });
 ///
-/// ...
+/// // ...
 ///
 /// # fn main() {
 /// let mut qqae = QmlEngine::new();
-/// let mut qobject = QExample::new(Example);
+/// let mut qobject = QExample::new(Example, "name property".to_string());
 /// qobject.simple_signal("Hi from Rust!".into());
 /// # }
 /// ```
@@ -247,24 +248,25 @@ macro_rules! Q_OBJECT{
 /// # use qml::*;
 /// Q_LISTMODEL!{
 ///     pub QTestModel {
-///         name: &str,
+///         name: String,
 ///         number: i32,
 ///     }
 /// }
 ///
-/// ...
+/// // ...
 ///
 /// # fn main() {
 /// let mut qqae = QmlEngine::new();
 /// let mut qalm = QTestModel::new();
-/// qalm.insert_row("John", 42);
-/// qalm.insert_row("Oak", 505);
+/// qalm.insert_row("John".into(), 42);
+/// qalm.insert_row("Oak".into(), 505);
 /// // `&QTestModel` implements `Into<QVariant>`
-/// qqae.set_and_store_property("listModel", &qalm);
+/// qqae.set_and_store_property("listModel", qalm.get_qvar());
 ///
 /// qqae.load_file("examples/listmodel.qml");
-/// qalm.set_data(vec![("OMG", 13317), ("HACKED", 228)]);
-/// qqae.exec();
+/// qalm.set_data(vec![("OMG".into(), 13317), ("HACKED".into(), 228)]);
+/// // qqae.exec();
+/// // qqae.quit();
 /// # }
 /// ```
 #[macro_export]
@@ -339,6 +341,8 @@ macro_rules! Q_LISTMODEL{
 /// The only requirement is that the type in question should provide `Default` implementation.
 /// # Examples
 /// ```
+/// # #[macro_use] extern crate qml;
+/// # use qml::*;
 ///
 /// #[derive(Default)]
 /// pub struct Test;
@@ -352,6 +356,8 @@ macro_rules! Q_LISTMODEL{
 /// });
 ///
 /// Q_REGISTERABLE_QML!(QTest: Test as TestRsObject 1=>0, from TestModule);
+/// # fn main() {
+/// # }
 /// ```
 /// Later on a type that was made registerable can be used in [`Q_REGISTER_QML`](macro.Q_REGISTER_QML!.html)
 /// or in [`Q_REGISTER_SINGLETON_QML`](macro.Q_REGISTER_SINGLETON_QML!.html) macros to be used as a type in QML.
@@ -396,6 +402,8 @@ macro_rules! Q_REGISTERABLE_QML(
 /// To use this macro [`Q_REGISTERABLE_QML`](macro.Q_REGISTERABLE_QML!.html) should be used first.
 /// # Examples
 /// ```
+/// # #[macro_use] extern crate qml;
+/// # use qml::*;
 ///
 /// #[derive(Default)]
 /// pub struct Test;
@@ -437,6 +445,8 @@ macro_rules! Q_REGISTER_QML(
 /// To use this macro [`Q_REGISTERABLE_QML`](macro.Q_REGISTERABLE_QML!.html) should be used first.
 /// # Examples
 /// ```
+/// # #[macro_use] extern crate qml;
+/// # use qml::*;
 ///
 /// #[derive(Default)]
 /// pub struct Test;
