@@ -7,7 +7,7 @@ extern crate lazy_static;
 
 mod qmlengine;
 mod qvariant;
-mod qabstactlistmodel;
+mod qabstractlistmodel;
 mod qinthasharray;
 mod utils;
 mod qmodelindex;
@@ -22,7 +22,8 @@ mod qmlregister;
 
 pub use qmlengine::QmlEngine;
 pub use qvariant::QVariant;
-pub use qabstactlistmodel::QListModel;
+pub use qabstractlistmodel::{QModel, QAbstractListModel, QListModel};
+pub use qmodelindex::QModelIndex;
 pub use qobject::QObject;
 pub use qmeta::{QObjectMacro, emit_signal};
 pub use qtypes::*;
