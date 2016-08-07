@@ -70,7 +70,8 @@ pub type FlagsCallback = extern "C" fn(*const libc::c_void, DosQModelIndex, *mut
 
 pub type HeaderDataCallback = extern "C" fn(*const libc::c_void, i32, i32, i32, MutDosQVariant);
 
-
+/// All models for AbstractListModel must implement it. You can abstract your model
+/// with whatever thing like a "list"
 /// # Examples
 /// ```
 /// # #[macro_use] extern crate qml;
@@ -111,34 +112,61 @@ pub type HeaderDataCallback = extern "C" fn(*const libc::c_void, i32, i32, i32, 
 /// ```
 pub trait QModel {
 
+    /// Returns the number of rows
     fn row_count(&self) -> i32;
 
+    // make a macro to generate a custom enum with defaults roles
+    // and the new ones
     /// Returns the data stored under the given role for the item referred to by the index.
     /// Note: If you do not have a value to return, return an invalid QVariant instead of returning 0.
     /// http://doc.qt.io/qt-5/qabstractitemmodel.html#data
     fn data(&self, QModelIndex, i32) -> QVariant;
 
+    /// Returns the new roles
+    /// http://doc.qt.io/qt-5/qabstractitemmodel.html#roleNames
     fn roles_names(&self) -> Vec<String>;
 
+    // TODO: return ItemFlags, no a integer
+    /// Returns the item flags for the given index.
+    /// The base class implementation returns a combination of flags that enables the item (ItemIsEnabled) and allows it to be selected (ItemIsSelectable).
     fn flags(&self, QModelIndex) -> i32;
 
 }
 
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-// TODO: Drop?? QModel?
+// TODO: Drop??
+/// Defines a AbstractListModel with basic features
+/// http://doc.qt.io/qt-5/qabstractitemmodel.html
 pub struct QAbstractListModel<'a, T: 'a + QModel> {
-    pub model: &'a T,
+    model: &'a T,
     wrapped: AtomicPtr<WQAbstractListModel>
 }
 
+impl<'a, T : QModel> QModel for QAbstractListModel<'a, T> {
+    fn row_count(&self) -> i32{
+        self.model.row_count()
+    }
+
+    fn data(&self, index : QModelIndex, role : i32) -> QVariant {
+        self.model.data(index, role)
+    }
+
+    fn roles_names(&self) -> Vec<String> {
+        self.model.roles_names()
+    }
+
+    fn flags(&self, index : QModelIndex) -> i32 {
+        self.model.flags(index)
+    }
+}
 
 extern "C" fn row_count_callback<T : QModel>(Qself: *const libc::c_void,
                                  index: DosQModelIndex,
                                  result: *mut i32) {
     unsafe {
         let qlist = &*(Qself as *const QAbstractListModel<T>);
-        *result = qlist.model.row_count();
+        *result = qlist.row_count();
     }
 }
 
@@ -150,7 +178,7 @@ extern "C" fn data_callback<T : QModel>(Qself: *const libc::c_void,
     unsafe {
         let qlist = &*(Qself as *const QAbstractListModel<T>);
         let mut qvar: QVariant = result.into();
-        qvar.set(&qlist.model.data(qindex, role));
+        qvar.set(&qlist.data(qindex, role));
     }
 }
 
@@ -158,12 +186,13 @@ extern "C" fn role_names_callback<T : QModel>(Qself: *const libc::c_void, result
     unsafe {
         let qlist = &*(Qself as *const QAbstractListModel<T>);
         let hash: QHashIntQByteArray = result.into();
-        for (i, name) in qlist.model.roles_names().iter().enumerate() {
+        for (i, name) in qlist.roles_names().iter().enumerate() {
             hash.insert(START_ROLE + i as i32, name);
         }
     }
 }
 
+// TODO: unimplemented
 extern "C" fn flags_callback<T : QModel>(Qself: *const libc::c_void,
                              index: DosQModelIndex,
                              result: *mut i32) {
